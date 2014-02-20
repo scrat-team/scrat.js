@@ -15,10 +15,9 @@
             'event.js' : ['lang']
         },
         urlPattern: 'http://hao.uc.cn/hinc/%s',
-        combo: true
+        combo: false
     });
-    scrat.async(['lang', 'event'], function (lang, event) {
-        console.dir(lang);
+    scrat.async(['event'], function (event) {
         console.dir(event);
     });
 </script>

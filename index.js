@@ -160,11 +160,11 @@
         var deps = scrat.options.deps;
         each(ids, function (id, i) {
             id = ids[i] = parseAlias(id);
-            if (id in scrat.modules || id in depended) return;
+            if (scrat.modules[id] || depended[id]) return;
             depends.unshift(id);
             depended[id] = 1;
             if (type(processor) === 'function') processor(id);
-            if (id in deps) parseDeps(id, processor, depends, depended);
+            if (deps[id]) parseDeps(deps[id], processor, depends, depended);
         });
         return depends;
     }
@@ -182,7 +182,7 @@
     }
 
     function createScript(url, onload) {
-        if (url in scrat.cacheUrl) return;
+        if (scrat.cacheUrl[url]) return;
         scrat.cacheUrl[url] = 1;
 
         var head = document.getElementsByTagName('head')[0],
