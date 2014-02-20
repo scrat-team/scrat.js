@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test</title>
+</head>
+<body>
+<script src="index.js"></script>
+<script>
+    scrat.config({
+        alias: {
+            lang : 'lang.js',
+            event : 'event.js'
+        },
+        deps: {
+            'event.js' : ['lang']
+        },
+        urlPattern: 'http://hao.uc.cn/hinc/%s',
+        combo: true
+    });
+    scrat.async(['lang', 'event'], function (lang, event) {
+        console.dir(lang);
+        console.dir(event);
+    });
+</script>
+</body>
+</html>
