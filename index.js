@@ -5,8 +5,8 @@
         options: {
             alias: {}, // key - name, value - id
             deps: {}, // key - id, value - name/id
-            urlPattern: null,
-            comboPattern: null,
+            urlPattern: null, // '/path/to/resources/%s'
+            comboPattern: null, // '/path/to/combo-service/%s' or function (ids) { return url; }
             combo: false
         },
         modules: {}, // key - id
@@ -62,18 +62,17 @@
     scrat.async = function (names, onload) {
         if (type(names) === 'string') names = [names];
 
-        var deps = 0, args = [];
+        var args = [], i = 0;
         if (scrat.options.combo) {
             each(parseDeps(names), processor);
         } else {
             parseDeps(names, processor);
         }
 
-        function processor(ids, ext) {
+        function processor(ids, ext, deps) {
             if (ext === '.js' || ext === '.css') {
-                ++deps;
                 load(ids, function () {
-                    if (--deps === 0) {
+                    if (++i === deps.length()) {
                         each(names, function (name) {
                             args.push(require(name));
                         });
@@ -139,6 +138,12 @@
         }
     }
 
+    function create(proto) {
+        function Dummy() {}
+        Dummy.prototype = proto;
+        return new Dummy();
+    }
+
     var EXT_RE = /(\.[^.]*)$/;
     function extname(path) {
         return EXT_RE.test(path) ? RegExp.$1 : '';
@@ -191,7 +196,7 @@
     }
 
     /**
-     * Calculate dependence of a list of ids
+     * Calculate dependence of a list of ids recursively
      * @param {string|array} ids
      * @param {function} [processor]
      * @private {object} [depends] - used in recursion
@@ -200,19 +205,24 @@
      */
     function parseDeps(ids, processor, depends, depended) {
         if (type(ids) === 'string') ids = [ids];
-        depends = depends || {};
-        depended = depended || {};
+        depends = depends || create({
+            length: (function (l) {
+                return function (i) { return l += (i || 0); };
+            })(0)
+        });
+        depended = depended || [];
 
         var deps = scrat.options.deps;
         each(ids, function (id, i) {
             id = ids[i] = parseAlias(id);
-            if (scrat.modules[id] || depended[id]) return;
+            if (depended[id]) return;
             var ext = extname(id);
             depends[ext] = depends[ext] || [];
             depends[ext].unshift(id);
+            depends.length(1);
             depended[id] = 1;
             if (deps[id]) parseDeps(deps[id], processor, depends, depended);
-            if (type(processor) === 'function') processor(id, ext);
+            if (type(processor) === 'function') processor(id, ext, depends);
         });
         return depends;
     }
@@ -237,6 +247,7 @@
             var loading = scrat.loading;
             each(ids, function (id, i) {
                 id = ids[i] = parseAlias(id);
+                if (scrat.modules[id]) return onload();
                 var queue = loading[id] || (loading[id] = []);
                 if (type(onload) === 'function') queue.push(onload);
             });
@@ -255,11 +266,14 @@
     /**
      * Load any types of resources from specified url
      * @param {string} url
-     * @param {boolean} [isScript = extname === '.js'] notice: combo-url may set to false
+     * @param {boolean} [isScript = extname(url) === '.js'] notice: combo-url may set to false
      * @param {function} [onload]
      */
     function loadResource(url, isScript, onload) {
-        if (scrat.cacheUrl[url]) return;
+        if (scrat.cacheUrl[url]) {
+            if (type(onload) === 'function') onload();
+            return;
+        }
         scrat.cacheUrl[url] = 1;
 
         var ext = extname(url);
