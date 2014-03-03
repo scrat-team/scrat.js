@@ -275,6 +275,7 @@
      * @param {boolean} [isScript = extname(url) === '.js'] notice: combo-url may set to false
      * @param {function} [onload]
      */
+    var SCRIPT_RE = /^$|js|json/i;
     function loadResource(url, isScript, onload) {
         if (scrat.cacheUrl[url]) {
             if (type(onload) === 'function') onload.call(scrat);
@@ -284,9 +285,7 @@
 
         var ext = extname(url);
         if (type(isScript) === 'function') onload = isScript;
-        if (isScript || isScript !== false) {
-            isScript = ext === '.js' || ext === '';
-        }
+        if (!isScript && isScript !== false) isScript = SCRIPT_RE.test(ext);
 
         var head = document.getElementsByTagName('head')[0],
             node = document.createElement(isScript ? 'script' : 'link'),
@@ -327,9 +326,41 @@
         head.insertBefore(node, head.firstChild);
 
         // trigger onload immediately after nonscript node insertion
-        !isScript && setTimeout(function () {
-            clearTimeout(tid);
-            if (type(onload) === 'function') onload.call(scrat);
+        if (!isScript) {
+            if (ext === '.css') {
+                setTimeout(function () {
+                    onCssLoad(node, function () {
+                        clearTimeout(tid);
+                        if (type(onload) === 'function') onload.call(scrat);
+                    });
+                }, 1);
+            } else {
+                if (type(onload) === 'function') onload.call(scrat);
+            }
+        }
+    }
+
+    var oldWebKit = +navigator.userAgent
+        .replace(/.*AppleWebKit\/(\d+)\..*/, "$1") < 536;
+    function onCssLoad(node, onload) {
+        var sheet = node.sheet,
+            loaded = false;
+        if (oldWebKit) {
+            if (sheet) loaded = true;
+        } else if (sheet) {
+            try {
+                if (sheet.cssRules) loaded = true;
+            } catch (e) {
+                if (e.name === 'NS_ERROR_DOM_SECURITY_ERR') loaded = true;
+            }
+        }
+
+        setTimeout(function () {
+            if (loaded) {
+                onload();
+            } else {
+                onCssLoad(node, onload);
+            }
         }, 20);
     }
 
