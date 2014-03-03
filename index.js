@@ -3,6 +3,7 @@
 
     var scrat = {
         options: {
+            timeout: 15, // seconds
             alias: {}, // key - name, value - id
             deps: {}, // key - id, value - name/id
             urlPattern: null, // '/path/to/resources/%s'
@@ -108,6 +109,8 @@
 
         return module.exports;
     }
+    require.config = scrat.config;
+    require.async = scrat.async;
 
     function type(obj) {
         var t;
@@ -247,7 +250,7 @@
             var loading = scrat.loading;
             each(ids, function (id, i) {
                 id = ids[i] = parseAlias(id);
-                if (scrat.modules[id]) return onload();
+                if (scrat.modules[id]) return onload.call(scrat);
                 var queue = loading[id] || (loading[id] = []);
                 if (type(onload) === 'function') queue.push(onload);
             });
@@ -271,7 +274,7 @@
      */
     function loadResource(url, isScript, onload) {
         if (scrat.cacheUrl[url]) {
-            if (type(onload) === 'function') onload();
+            if (type(onload) === 'function') onload.call(scrat);
             return;
         }
         scrat.cacheUrl[url] = 1;
@@ -281,7 +284,8 @@
         if (isScript || isScript !== false) isScript = ext === '.js';
 
         var head = document.getElementsByTagName('head')[0],
-            node = document.createElement(isScript ? 'script' : 'link');
+            node = document.createElement(isScript ? 'script' : 'link'),
+            tid = setTimeout(onerror, scrat.options.timeout * 1000);
 
         if (isScript) {
             node.type = 'text/javascript';
@@ -291,6 +295,8 @@
             if (ext === '.css') {
                 node.type = 'text/css';
                 node.rel = 'stylesheet';
+            } else {
+                node.rel = 'prefetch';
             }
             node.href = url;
         }
@@ -298,16 +304,23 @@
         node.onload = node.onreadystatechange = function () {
             if (!node.readyState ||
                 /loaded|complete/.test(node.readyState)) {
+                clearTimeout(tid);
                 node.onload = node.onreadystatechange = null;
                 if (isScript && head && node.parentNode) {
                     head.removeChild(node);
                 }
                 node = null;
                 if (type(onload) === 'function') {
-                    onload();
+                    onload.call(scrat);
                 }
             }
         };
+
+        node.onerror = function onerror() {
+            clearTimeout(tid);
+            throw new Error('error loading url: ' + url);
+        };
+
         head.insertBefore(node, head.firstChild);
     }
 
