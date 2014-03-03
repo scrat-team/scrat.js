@@ -63,9 +63,12 @@
     scrat.async = function (names, onload) {
         if (type(names) === 'string') names = [names];
 
-        var args = [], i = 0;
+        var args = [], deps, i = 0;
         if (scrat.options.combo) {
-            each(parseDeps(names), processor);
+            deps = parseDeps(names);
+            // quick'n'dirty fix length of depends, treat multi-css as a css
+            if (deps['.css']) deps.length(1 - deps['.css'].length);
+            each(deps, processor);
         } else {
             parseDeps(names, processor);
         }
