@@ -281,7 +281,9 @@
 
         var ext = extname(url);
         if (type(isScript) === 'function') onload = isScript;
-        if (isScript || isScript !== false) isScript = ext === '.js';
+        if (isScript || isScript !== false) {
+            isScript = ext === '.js' || ext === '';
+        }
 
         var head = document.getElementsByTagName('head')[0],
             node = document.createElement(isScript ? 'script' : 'link'),
@@ -306,13 +308,11 @@
                 /loaded|complete/.test(node.readyState)) {
                 clearTimeout(tid);
                 node.onload = node.onreadystatechange = null;
-                if (isScript && head && node.parentNode) {
-                    head.removeChild(node);
+                if (isScript) {
+                    if (head && node.parentNode) head.removeChild(node);
+                    if (type(onload) === 'function') onload.call(scrat);
                 }
                 node = null;
-                if (type(onload) === 'function') {
-                    onload.call(scrat);
-                }
             }
         };
 
@@ -322,6 +322,12 @@
         };
 
         head.insertBefore(node, head.firstChild);
+
+        // trigger onload immediately after nonscript node insertion
+        !isScript && setTimeout(function () {
+            clearTimeout(tid);
+            if (type(onload) === 'function') onload.call(scrat);
+        }, 20);
     }
 
     global.require = scrat;
