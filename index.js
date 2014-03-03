@@ -65,16 +65,13 @@
 
         var args = [], deps, i = 0;
         if (scrat.options.combo) {
-            deps = parseDeps(names);
-            // quick'n'dirty fix length of depends, treat multi-css as a css
-            if (deps['.css']) deps.length(1 - deps['.css'].length);
-            each(deps, processor);
+            each(parseDeps(names), processor);
         } else {
             parseDeps(names, processor);
         }
 
         function processor(ids, ext, deps) {
-            if (ext === '.js' || ext === '.css') {
+            if (ext === 'js' || ext === 'css') {
                 load(ids, function () {
                     if (++i === deps.length()) {
                         each(names, function (name) {
@@ -98,7 +95,7 @@
         var id = parseAlias(name),
             module = scrat.modules[id];
 
-        if (extname(id) !== '.js') return;
+        if (parseType(id) !== 'js') return;
         if (!module) throw new Error('failed to require "' + name + '"');
 
         if (!module.exports) {
@@ -148,11 +145,6 @@
         function Dummy() {}
         Dummy.prototype = proto;
         return new Dummy();
-    }
-
-    var EXT_RE = /(\.[^.]*)$/;
-    function extname(path) {
-        return EXT_RE.test(path) ? RegExp.$1 : '';
     }
 
     /**
@@ -206,31 +198,50 @@
      * @param {string|array} ids
      * @param {function} [processor]
      * @private {object} [depends] - used in recursion
-     * @private {array} [depended] - used in recursion
      * @returns {object} depends
      */
-    function parseDeps(ids, processor, depends, depended) {
+    function parseDeps(ids, processor, depends) {
         if (type(ids) === 'string') ids = [ids];
-        depends = depends || create({
-            length: (function (l) {
-                return function (i) { return l += (i || 0); };
-            })(0)
-        });
-        depended = depended || [];
+
+        depends = depends || (function (length, proto, depended) {
+            proto.length = function () { return length; };
+            proto.has = function (id) { return !!depended[id]; };
+            proto.add = function (id) {
+                var ext = parseType(id);
+                this[ext] = this[ext] || [];
+                this[ext].unshift(id);
+                depended[id] = 1;
+                if (ext === 'js') ++length;
+                else if (ext === 'css') {
+                    if (scrat.options.combo) {
+                        // treat multi-css as one
+                        if (this[ext].length === 0) ++length;
+                    } else {
+                        ++length;
+                    }
+                }
+            };
+            return create(proto);
+        })(0, {}, {});
 
         var deps = scrat.options.deps;
         each(ids, function (id, i) {
             id = ids[i] = parseAlias(id);
-            if (depended[id]) return;
-            var ext = extname(id);
-            depends[ext] = depends[ext] || [];
-            depends[ext].unshift(id);
-            depends.length(1);
-            depended[id] = 1;
-            if (deps[id]) parseDeps(deps[id], processor, depends, depended);
-            if (type(processor) === 'function') processor(id, ext, depends);
+            if (depends.has(id)) return;
+            depends.add(id);
+            if (deps[id]) parseDeps(deps[id], processor, depends);
+            if (type(processor) === 'function') processor(id, parseType(id), depends);
         });
         return depends;
+    }
+
+    var TYPE_RE = /(?:\.)(\w+)(?:[?&,]|$)/g;
+    function parseType(str) {
+        var ext = 'js', match = str.match(TYPE_RE);
+        if (str.match(TYPE_RE).length) ext = RegExp.$1;
+        if (ext === 'json') ext = 'js';
+        else if (ext !== 'js' && ext !== 'css') ext = 'other';
+        return ext;
     }
 
     /**
@@ -248,8 +259,8 @@
             ids = [ids];
         }
 
-        switch (extname(ids[0])) {
-        case '.js':
+        switch (parseType(ids[0])) {
+        case 'js':
             var loading = scrat.loading;
             each(ids, function (id, i) {
                 id = ids[i] = parseAlias(id);
@@ -257,14 +268,14 @@
                 var queue = loading[id] || (loading[id] = []);
                 if (type(onload) === 'function') queue.push(onload);
             });
-            loadResource(parseUrl(ids), true);
+            loadResource(parseUrl(ids));
             break;
-        case '.css':
-            loadResource(parseUrl(ids), false, onload);
+        case 'css':
+            loadResource(parseUrl(ids), onload);
             break;
         default:
             each(ids, function (id) {
-                loadResource(parseUrl(id), false, onload);
+                loadResource(parseUrl(id), onload);
             });
         }
     }
@@ -272,22 +283,19 @@
     /**
      * Load any types of resources from specified url
      * @param {string} url
-     * @param {boolean} [isScript = extname(url) === '.js'] notice: combo-url may set to false
      * @param {function} [onload]
      */
-    var SCRIPT_RE = /^$|js|json/i;
-    function loadResource(url, isScript, onload) {
+    function loadResource(url, onload) {
         if (scrat.cacheUrl[url]) {
             if (type(onload) === 'function') onload.call(scrat);
             return;
         }
         scrat.cacheUrl[url] = 1;
 
-        var ext = extname(url);
-        if (type(isScript) === 'function') onload = isScript;
-        if (!isScript && isScript !== false) isScript = SCRIPT_RE.test(ext);
-
-        var head = document.getElementsByTagName('head')[0],
+        var ext = parseType(url),
+            isScript = ext === 'js',
+            isCss = ext === 'css',
+            head = document.getElementsByTagName('head')[0],
             node = document.createElement(isScript ? 'script' : 'link'),
             tid = setTimeout(onerror, scrat.options.timeout * 1000);
 
@@ -296,7 +304,7 @@
             node.async = 'async';
             node.src = url;
         } else {
-            if (ext === '.css') {
+            if (isCss) {
                 node.type = 'text/css';
                 node.rel = 'stylesheet';
             } else {
@@ -327,13 +335,11 @@
 
         // trigger onload immediately after nonscript node insertion
         if (!isScript) {
-            if (ext === '.css') {
-                setTimeout(function () {
-                    onCssLoad(node, function () {
-                        clearTimeout(tid);
-                        if (type(onload) === 'function') onload.call(scrat);
-                    });
-                }, 1);
+            if (isCss) {
+                onCssLoad(node, function () {
+                    clearTimeout(tid);
+                    if (type(onload) === 'function') onload.call(scrat);
+                });
             } else {
                 if (type(onload) === 'function') onload.call(scrat);
             }
@@ -341,7 +347,7 @@
     }
 
     var oldWebKit = +navigator.userAgent
-        .replace(/.*AppleWebKit\/(\d+)\..*/, "$1") < 536;
+        .replace(/.*AppleWebKit\/(\d+)\..*/, '$1') < 536;
     function onCssLoad(node, onload) {
         var sheet = node.sheet,
             loaded = false;
