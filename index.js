@@ -3,6 +3,7 @@
 
     var scrat = {
         options: {
+            debug: (global.localStorage || {}).debug,
             timeout: 15, // seconds
             alias: {}, // key - name, value - id
             deps: {}, // key - id, value - name/id
@@ -189,6 +190,10 @@
             break;
         default:
             url = ids.join(',');
+        }
+
+        if (options.debug) {
+            url = url + (~url.indexOf('?') ? '&' : '?') + (+new Date);
         }
         return url;
     }
