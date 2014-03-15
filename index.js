@@ -183,6 +183,11 @@
     rproto.push = function () {
         var that = this,
             args = slice.call(arguments);
+
+        function onload() {
+            if (--that.length === 0) that.callback();
+        }
+
         each(args, function (arg) {
             var id = scrat.alias(arg),
                 type = fileType(id),
@@ -207,10 +212,6 @@
             that.depends[type].push(res);
             if (type !== 'unknown') ++that.length;
         });
-
-        function onload() {
-            if (--that.length === 0) that.callback();
-        }
     };
 
     rproto.run = function () {
@@ -238,8 +239,8 @@
                 scrat.load(that.genUrl(ids), function () {
                     each(depends[type], function (res) {
                         res.loaded = true;
-                        var onload;
-                        while (onload = res.onload.shift()) {
+                        while (res.onload.length) {
+                            var onload = res.onload.shift();
                             onload.call(res);
                         }
                     });
@@ -249,8 +250,8 @@
             each((depends.css || []).concat(depends.js || []), function (res) {
                 scrat.load(that.genUrl(res.id), function () {
                     res.loaded = true;
-                    var onload;
-                    while (onload = res.onload.shift()) {
+                    while (res.onload.length) {
+                        var onload = res.onload.shift();
                         onload.call(res);
                     }
                 });
