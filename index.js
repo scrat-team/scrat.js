@@ -1,28 +1,29 @@
-(function (global) {
+(function (global, undefined) {
     'use strict';
 
-    var scrat = {
-        options: {
-            debug: (global.localStorage || {}).debug,
-            timeout: 15, // seconds
-            alias: {}, // key - name, value - id
-            deps: {}, // key - id, value - name/id
-            urlPattern: null, // '/path/to/resources/%s'
-            comboPattern: null, // '/path/to/combo-service/%s' or function (ids) { return url; }
-            combo: false
-        },
-        modules: {}, // key - id
-        loading: {}, // key - id
-        loaded: {}, // key - id
-        cacheUrl: {}
+    var slice = Array.prototype.slice,
+        proto = {},
+        scrat = create(proto);
+
+    scrat.options = {
+        debug: false,
+        timeout: 15, // seconds
+        alias: {}, // key - name, value - id
+        deps: {}, // key - id, value - name/id
+        urlPattern: null, // '/path/to/resources/%s'
+        comboPattern: null, // '/path/to/combo-service/%s' or function (ids) { return url; }
+        combo: false
     };
+    scrat.cache = {}; // key - id
 
     /**
      * Mix obj to scrat.options
      * @param {object} obj
      */
-    scrat.config = function (obj) {
+    proto.config = function (obj) {
         var options = scrat.options;
+
+        debug('scrat.config', obj);
         each(obj, function (value, key) {
             var data = options[key],
                 t = type(data);
@@ -38,54 +39,245 @@
     };
 
     /**
-     * Define a module with a factory funciton or any types of value
-     * @param {string} id
-     * @param {*} factory
-     */
-    scrat.define = function (id, factory) {
-        id = parseAlias(id);
-        scrat.modules[id] = {
-            factory: factory
-        };
-
-        var queue = scrat.loading[id];
-        if (queue) {
-            each(queue, function (callback) {
-                callback.call(scrat);
-            });
-            delete scrat.loading[id];
-        }
-    };
-
-    /**
      * Require modules asynchronously with a callback
      * @param {string|array} names
      * @param {function} onload
      */
-    scrat.async = function (names, onload) {
+    proto.async = function (names, onload) {
         if (type(names) === 'string') names = [names];
+        debug('scrat.async', names);
 
-        var args = [], deps, i = 0;
-        if (scrat.options.combo) {
-            each(parseDeps(names), processor);
+        var reactor = new scrat.Reactor(names, function () {
+            var args = [];
+            each(names, function (id) {
+                args.push(require(id));
+            });
+            onload.apply(scrat, args);
+        });
+        reactor.run();
+    };
+
+    /**
+     * Define a module with a factory funciton or any types of value
+     * @param {string} id
+     * @param {*} factory
+     */
+    proto.define = function (id, factory) {
+        debug('scrat.define', id);
+        var res = scrat.cache[id];
+        if (res) {
+            res.factory = factory;
         } else {
-            parseDeps(names, processor);
+            scrat.cache[id] = {
+                id: id,
+                loaded: true,
+                factory: factory
+            };
+        }
+    };
+
+    /**
+     * Get alias from specified name recursively
+     * @param {string} name
+     * @param {string|function} [alias] - set alias
+     * @returns {string} name
+     */
+    proto.alias = function (name, alias) {
+        var aliasMap = scrat.options.alias;
+
+        if (arguments.length > 1) {
+            aliasMap[name] = alias;
+            return scrat.alias(name);
         }
 
-        function processor(ids, ext, deps) {
-            if (ext === 'js' || ext === 'css') {
-                load(ids, function () {
-                    if (++i === deps.length()) {
-                        each(names, function (name) {
-                            args.push(require(name));
-                        });
-                        if (type(onload) === 'function') onload.apply(scrat, args);
-                    }
-                });
-            } else {
-                load(ids);
+        while (aliasMap[name] && name !== aliasMap[name]) {
+            switch (type(aliasMap[name])) {
+            case 'function':
+                name = aliasMap[name](name);
+                break;
+            case 'string':
+                name = aliasMap[name];
+                break;
             }
         }
+        return name;
+    };
+
+    /**
+     * Load any types of resources from specified url
+     * @param {string} url
+     * @param {function|object} [onload|options]
+     */
+    proto.load = function (url, options) {
+        if (type(options) === 'function') options = {onload: options};
+
+        var t = options.type || fileType(url),
+            isScript = t === 'js',
+            isCss = t === 'css',
+            isOldWebKit = +navigator.userAgent
+                .replace(/.*AppleWebKit\/(\d+)\..*/, '$1') < 536,
+
+            head = document.getElementsByTagName('head')[0],
+            node = document.createElement(isScript ? 'script' : 'link'),
+            supportOnload = 'onload' in node,
+            tid = setTimeout(onerror, (options.timeout || 15) * 1000),
+            intId;
+
+        if (isScript) {
+            node.type = 'text/javascript';
+            node.async = 'async';
+            node.src = url;
+        } else {
+            if (isCss) {
+                node.type = 'text/css';
+                node.rel = 'stylesheet';
+            }
+            node.href = url;
+        }
+
+        node.onload = node.onreadystatechange = function () {
+            if (!node.readyState ||
+                /loaded|complete/.test(node.readyState)) {
+                clearTimeout(tid);
+                node.onload = node.onreadystatechange = null;
+                if (isScript && head && node.parentNode) head.removeChild(node);
+                if (options.onload) options.onload.call(scrat);
+                node = null;
+            }
+        };
+
+        node.onerror = function onerror() {
+            clearTimeout(tid);
+            clearInterval(intId);
+            throw new Error('Error loading url: ' + url);
+        };
+
+        debug('scrat.load', url);
+        head.insertBefore(node, head.firstChild);
+
+        // trigger onload immediately after nonscript node insertion
+        if (isCss) {
+            if (isOldWebKit || !supportOnload) {
+                intId = setInterval(function () {
+                    if (node.sheet) {
+                        clearInterval(intId);
+                        if (options.onload) options.onload.call(scrat);
+                    }
+                }, 20);
+            }
+        } else if (!isScript) {
+            if (options.onload) options.onload.call(scrat);
+        }
+    };
+
+    proto.Reactor = function (names, callback) {
+        this.length = 0;
+        this.depends = {};
+        this.depended = {};
+        this.push.apply(this, names);
+        this.callback = callback;
+    };
+
+    var rproto = scrat.Reactor.prototype;
+
+    rproto.push = function () {
+        var that = this,
+            args = slice.call(arguments);
+        each(args, function (arg) {
+            var id = scrat.alias(arg),
+                type = fileType(id),
+                res = scrat.cache[id];
+
+            if (that.depended[id] || res && res.loaded) return;
+            if (res && !res.loaded && type !== 'unknown') {
+                ++that.length;
+                res.onload.push(onload);
+                return;
+            }
+
+            res = scrat.cache[id] = {
+                id: id,
+                loaded: false,
+                onload: [onload]
+            };
+
+            that.push.apply(that, scrat.options.deps[id]);
+            that.depended[id] = 1;
+            if (!that.depends[type]) that.depends[type] = [];
+            that.depends[type].push(res);
+            if (type !== 'unknown') ++that.length;
+        });
+
+        function onload() {
+            if (--that.length === 0) that.callback();
+        }
+    };
+
+    rproto.run = function () {
+        var that = this,
+            options = scrat.options,
+            combo = options.combo,
+            depends = this.depends;
+
+        if (this.length === 0) return this.callback();
+        debug('reactor.run', depends);
+
+        each(depends.unknown, function (res) {
+            scrat.load(that.genUrl(res.id), function () {
+                res.loaded = true;
+            });
+        });
+
+        debug('reactor.run', 'combo: ' + combo);
+        if (combo) {
+            each(['css', 'js'], function (type) {
+                var ids = [];
+                each(depends[type], function (res) {
+                    ids.push(res.id);
+                });
+                scrat.load(that.genUrl(ids), function () {
+                    each(depends[type], function (res) {
+                        res.loaded = true;
+                        var onload;
+                        while (onload = res.onload.shift()) {
+                            onload.call(res);
+                        }
+                    });
+                });
+            });
+        } else {
+            each((depends.css || []).concat(depends.js || []), function (res) {
+                scrat.load(that.genUrl(res.id), function () {
+                    res.loaded = true;
+                    var onload;
+                    while (onload = res.onload.shift()) {
+                        onload.call(res);
+                    }
+                });
+            });
+        }
+    };
+
+    rproto.genUrl = function (ids) {
+        if (type(ids) === 'string') ids = [ids];
+
+        var options = scrat.options,
+            url = options.combo && options.comboPattern || options.urlPattern;
+        switch (type(url)) {
+        case 'string':
+            url = url.replace('%s', ids.join(','));
+            break;
+        case 'function':
+            url = url(ids);
+            break;
+        default:
+            url = ids.join(',');
+        }
+
+        if (options.debug) {
+            url = url + (~url.indexOf('?') ? '&' : '?') + (+new Date());
+        }
+        return url;
     };
 
     /**
@@ -94,10 +286,10 @@
      * @returns {*} exports
      */
     function require(name) {
-        var id = parseAlias(name),
-            module = scrat.modules[id];
+        var id = scrat.alias(name),
+            module = scrat.cache[id];
 
-        if (parseType(id) !== 'js') return;
+        if (fileType(id) !== 'js') return;
         if (!module) throw new Error('failed to require "' + name + '"');
 
         if (!module.exports) {
@@ -111,8 +303,9 @@
 
         return module.exports;
     }
-    require.config = scrat.config;
-    require.async = scrat.async;
+
+    // Mix scrat's prototype to require
+    each(proto, function (m, k) { require[k] = m; });
 
     function type(obj) {
         var t;
@@ -149,233 +342,33 @@
         return new Dummy();
     }
 
-    /**
-     * Parse alias from specified name recursively
-     * @param {string} name
-     * @returns {string} name
-     */
-    function parseAlias(name) {
-        var alias = scrat.options.alias;
-        while (alias[name] && name !== alias[name]) {
-            switch (type(alias[name])) {
-            case 'function':
-                name = alias[name](name);
-                break;
-            case 'string':
-                name = alias[name];
-                break;
-            }
-        }
-        return name;
-    }
-
-    /**
-     * Generate url/combo-url from ids
-     * @param {string|array} ids
-     * @returns {string} url
-     */
-    function parseUrl(ids) {
-        if (type(ids) === 'string') ids = [ids];
-        each(ids, function (id, i) {
-            ids[i] = parseAlias(id);
-        });
-
-        var options = scrat.options,
-            url = options.combo && options.comboPattern || options.urlPattern;
-        switch (type(url)) {
-        case 'string':
-            url = url.replace('%s', ids.join(','));
-            break;
-        case 'function':
-            url = url(ids);
-            break;
-        default:
-            url = ids.join(',');
-        }
-
-        if (options.debug) {
-            url = url + (~url.indexOf('?') ? '&' : '?') + (+new Date);
-        }
-        return url;
-    }
-
-    /**
-     * Calculate dependence of a list of ids recursively
-     * @param {string|array} ids
-     * @param {function} [processor]
-     * @private {object} [depends] - used in recursion
-     * @returns {object} depends
-     */
-    function parseDeps(ids, processor, depends) {
-        if (type(ids) === 'string') ids = [ids];
-
-        depends = depends || (function (length, proto, depended) {
-            proto.length = function () { return length; };
-            proto.has = function (id) { return !!depended[id]; };
-            proto.add = function (id) {
-                var ext = parseType(id);
-                this[ext] = this[ext] || [];
-                this[ext].unshift(id);
-                depended[id] = 1;
-                if (ext === 'js') ++length;
-                else if (ext === 'css') {
-                    if (scrat.options.combo) {
-                        // treat multi-css as one
-                        if (this[ext].length === 0) ++length;
-                    } else {
-                        ++length;
-                    }
-                }
-            };
-            return create(proto);
-        })(0, {}, scrat.loaded);
-
-        var deps = scrat.options.deps;
-        each(ids, function (id, i) {
-            id = ids[i] = parseAlias(id);
-            if (depends.has(id)) return;
-            depends.add(id);
-            if (deps[id]) parseDeps(deps[id], processor, depends);
-            if (type(processor) === 'function') processor(id, parseType(id), depends);
-        });
-        return depends;
-    }
-
     var TYPE_RE = /(?:\.)(\w+)(?:[?&,]|$)/g;
-    function parseType(str) {
-        var ext = 'js', match = str.match(TYPE_RE);
-        if (str.match(TYPE_RE).length) ext = RegExp.$1;
+    function fileType(str) {
+        var ext = 'js',
+            match = str.match(TYPE_RE);
+        if (match && match.length) ext = RegExp.$1;
         if (ext === 'json') ext = 'js';
-        else if (ext !== 'js' && ext !== 'css') ext = 'other';
+        else if (ext !== 'js' && ext !== 'css') ext = 'unknown';
         return ext;
     }
 
-    /**
-     * Load a group of resources
-     * @param {string|array|object} ids
-     * @param {function} [onload]
-     */
-    function load(ids, onload) {
-        if (type(ids) === 'object') {
-            each(ids, function (arr) {
-                load(arr, onload);
-            });
-            return;
-        } else if (type(ids) === 'string') {
-            ids = [ids];
-        }
-
-        switch (parseType(ids[0])) {
-        case 'js':
-            var loading = scrat.loading;
-            each(ids, function (id, i) {
-                id = ids[i] = parseAlias(id);
-                if (scrat.modules[id]) return onload.call(scrat);
-                var queue = loading[id] || (loading[id] = []);
-                if (type(onload) === 'function') queue.push(onload);
-            });
-            loadResource(parseUrl(ids));
-            break;
-        case 'css':
-            loadResource(parseUrl(ids), onload);
-            break;
-        default:
-            each(ids, function (id) {
-                loadResource(parseUrl(id), onload);
-            });
-        }
-    }
-
-    /**
-     * Load any types of resources from specified url
-     * @param {string} url
-     * @param {function} [onload]
-     */
-    function loadResource(url, onload) {
-        if (scrat.cacheUrl[url]) {
-            if (type(onload) === 'function') onload.call(scrat);
-            return;
-        }
-        scrat.cacheUrl[url] = 1;
-
-        var ext = parseType(url),
-            isScript = ext === 'js',
-            isCss = ext === 'css',
-            head = document.getElementsByTagName('head')[0],
-            node = document.createElement(isScript ? 'script' : 'link'),
-            tid = setTimeout(onerror, scrat.options.timeout * 1000);
-
-        if (isScript) {
-            node.type = 'text/javascript';
-            node.async = 'async';
-            node.src = url;
-        } else {
-            if (isCss) {
-                node.type = 'text/css';
-                node.rel = 'stylesheet';
-            } else {
-                node.rel = 'prefetch';
+    var _modCache;
+    function debug() {
+        var flag = (global.localStorage || {}).debug,
+            args = slice.call(arguments),
+            mod = args.shift(),
+            re = new RegExp(mod.replace(/[.\/\\]/, function (m) {
+                return '\\' + m;
+            }));
+        if (flag && flag === '*' || re.test(flag)) {
+            if (_modCache !== mod) {
+                console.groupEnd(_modCache);
+                console.group(_modCache = mod);
             }
-            node.href = url;
+            console.log.apply(console, args);
         }
-
-        node.onload = node.onreadystatechange = function () {
-            if (!node.readyState ||
-                /loaded|complete/.test(node.readyState)) {
-                clearTimeout(tid);
-                node.onload = node.onreadystatechange = null;
-                if (isScript) {
-                    if (head && node.parentNode) head.removeChild(node);
-                    if (type(onload) === 'function') onload.call(scrat);
-                }
-                node = null;
-            }
-        };
-
-        node.onerror = function onerror() {
-            clearTimeout(tid);
-            throw new Error('error loading url: ' + url);
-        };
-
-        head.insertBefore(node, head.firstChild);
-
-        // trigger onload immediately after nonscript node insertion
-        if (!isScript) {
-            if (isCss) {
-                onCssLoad(node, function () {
-                    clearTimeout(tid);
-                    if (type(onload) === 'function') onload.call(scrat);
-                });
-            } else {
-                if (type(onload) === 'function') onload.call(scrat);
-            }
-        }
-    }
-
-    var oldWebKit = +navigator.userAgent
-        .replace(/.*AppleWebKit\/(\d+)\..*/, '$1') < 536;
-    function onCssLoad(node, onload) {
-        var sheet = node.sheet,
-            loaded = false;
-        if (oldWebKit) {
-            if (sheet) loaded = true;
-        } else if (sheet) {
-            try {
-                if (sheet.cssRules) loaded = true;
-            } catch (e) {
-                if (e.name === 'NS_ERROR_DOM_SECURITY_ERR') loaded = true;
-            }
-        }
-
-        setTimeout(function () {
-            if (loaded) {
-                onload();
-            } else {
-                onCssLoad(node, onload);
-            }
-        }, 20);
     }
 
     global.require = scrat;
     global.define = scrat.define;
-})(window);
+})(this);
