@@ -45,7 +45,7 @@
      */
     proto.async = function (names, onload) {
         if (type(names) === 'string') names = [names];
-        debug('scrat.async', names);
+        debug('scrat.async', 'require [' + names.join(', ') + ']');
 
         var reactor = new scrat.Reactor(names, function () {
             var args = [];
@@ -53,6 +53,7 @@
                 args.push(require(id));
             });
             onload.apply(scrat, args);
+            debug('scrat.async', '[' + names.join(', ') + '] callback called');
         });
         reactor.run();
     };
@@ -63,7 +64,7 @@
      * @param {*} factory
      */
     proto.define = function (id, factory) {
-        debug('scrat.define', id);
+        debug('scrat.define', '[' + id + ']');
         var res = scrat.cache[id];
         if (res) {
             res.factory = factory;
@@ -152,7 +153,7 @@
             throw new Error('Error loading url: ' + url);
         };
 
-        debug('scrat.load', url);
+        debug('scrat.load', '[' + url + ']');
         head.insertBefore(node, head.firstChild);
 
         // trigger onload immediately after nonscript node insertion
@@ -300,8 +301,8 @@
                 module.exports = module.factory;
             }
             delete module.factory;
+            debug('require', '[' + id + '] factory called');
         }
-
         return module.exports;
     }
 
