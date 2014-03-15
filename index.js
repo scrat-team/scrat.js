@@ -13,6 +13,7 @@
         },
         modules: {}, // key - id
         loading: {}, // key - id
+        loaded: {}, // key - id
         cacheUrl: {}
     };
 
@@ -227,7 +228,7 @@
                 }
             };
             return create(proto);
-        })(0, {}, {});
+        })(0, {}, scrat.loaded);
 
         var deps = scrat.options.deps;
         each(ids, function (id, i) {
