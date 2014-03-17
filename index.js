@@ -122,7 +122,7 @@
             node = document.createElement(isScript ? 'script' : 'link'),
             supportOnload = 'onload' in node,
             tid = setTimeout(onerror, (options.timeout || 15) * 1000),
-            intId;
+            intId, intTimer;
 
         if (isScript) {
             node.type = 'text/javascript';
@@ -159,10 +159,19 @@
         // trigger onload immediately after nonscript node insertion
         if (isCss) {
             if (isOldWebKit || !supportOnload) {
+                debug('scrat.load', 'check css\'s loading status for compatible');
+                intTimer = 0;
                 intId = setInterval(function () {
+                    if ((intTimer += 20) > options.timeout || !node) {
+                        clearTimeout(tid);
+                        clearInterval(intId);
+                        return;
+                    }
                     if (node.sheet) {
+                        clearTimeout(tid);
                         clearInterval(intId);
                         if (options.onload) options.onload.call(scrat);
+                        node = null;
                     }
                 }, 20);
             }
@@ -358,14 +367,20 @@
     function debug() {
         var flag = (global.localStorage || {}).debug,
             args = slice.call(arguments),
+            style = 'color: #bada55',
             mod = args.shift(),
             re = new RegExp(mod.replace(/[.\/\\]/, function (m) {
                 return '\\' + m;
             }));
+        mod = '%c' + mod;
         if (flag && flag === '*' || re.test(flag)) {
             if (_modCache !== mod) {
-                console.groupEnd(_modCache);
-                console.group(_modCache = mod);
+                console.groupEnd(_modCache, style);
+                console.group(_modCache = mod, style);
+            }
+            if (/string|number|boolean/.test(type(args[0]))) {
+                args[0] = '%c' + args[0];
+                args.splice(1, 0, style);
             }
             console.log.apply(console, args);
         }
