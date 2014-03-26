@@ -246,15 +246,17 @@
                 each(depends[type], function (res) {
                     ids.push(res.id);
                 });
-                scrat.load(that.genUrl(ids), function () {
-                    each(depends[type], function (res) {
-                        res.loaded = true;
-                        while (res.onload.length) {
-                            var onload = res.onload.shift();
-                            onload.call(res);
-                        }
+                if (ids.length) {
+                    scrat.load(that.genUrl(ids), function () {
+                        each(depends[type], function (res) {
+                            res.loaded = true;
+                            while (res.onload.length) {
+                                var onload = res.onload.shift();
+                                onload.call(res);
+                            }
+                        });
                     });
-                });
+                }
             });
         } else {
             each((depends.css || []).concat(depends.js || []), function (res) {
