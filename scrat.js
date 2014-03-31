@@ -371,7 +371,7 @@
             args = slice.call(arguments),
             style = 'color: #bada55',
             mod = args.shift(),
-            re = new RegExp(mod.replace(/[.\/\\]/, function (m) {
+            re = new RegExp(mod.replace(/[.\/\\]/g, function (m) {
                 return '\\' + m;
             }));
         mod = '%c' + mod;
