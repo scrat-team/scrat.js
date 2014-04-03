@@ -2,11 +2,12 @@
     'use strict';
 
     var slice = Array.prototype.slice,
+        localStorage = global.localStorage,
         proto = {},
         scrat = create(proto);
 
     scrat.options = {
-        debug: false,
+        cache: true,
         timeout: 15, // seconds
         alias: {}, // key - name, value - id
         deps: {}, // key - id, value - name/id
@@ -36,6 +37,20 @@
                 options[key] = value;
             }
         });
+
+        // detect localStorage support and activate cache ability
+        var prefix = '__SCRAT__';
+        try {
+            if (options.version !== localStorage.getItem('__SCRAT_VERSION__')) {
+                each(localStorage, function (key) {
+                    if (~key.indexOf(prefix)) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                localStorage.setItem('__SCRAT_VERSION__', options.version);
+            }
+            if (options.cache) proto.prefix = prefix;
+        } catch (e) {}
     };
 
     /**
@@ -287,7 +302,7 @@
             url = ids.join(',');
         }
 
-        if (options.debug) {
+        if (!options.cache) {
             url = url + (~url.indexOf('?') ? '&' : '?') + (+new Date());
         }
         return url;
@@ -306,11 +321,10 @@
         if (!module) throw new Error('failed to require "' + name + '"');
 
         if (!module.exports) {
-            if (type(module.factory) === 'function') {
-                module.factory.call(scrat, require, module.exports = {}, module);
-            } else {
-                module.exports = module.factory;
+            if (type(module.factory) !== 'function') {
+                throw new Error('failed to require "' + name + '"');
             }
+            module.factory.call(scrat, require, module.exports = {}, module);
             delete module.factory;
             debug('require', '[' + id + '] factory called');
         }
