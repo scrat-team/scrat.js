@@ -51,6 +51,8 @@
             }
             if (options.cache) proto.prefix = prefix;
         } catch (e) {}
+
+        return options;
     };
 
     /**
