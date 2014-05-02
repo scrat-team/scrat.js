@@ -6,8 +6,10 @@
         proto = {},
         scrat = create(proto);
 
+    scrat.version = '0.3.0';
     scrat.options = {
-        cache: true,
+        prefix: '__SCRAT__',
+        cache: true, // must use with `scrat release -m`
         timeout: 15, // seconds
         alias: {}, // key - name, value - id
         deps: {}, // key - id, value - name/id
@@ -39,18 +41,15 @@
         });
 
         // detect localStorage support and activate cache ability
-        var prefix = '__SCRAT__';
         try {
-            if (options.version !== localStorage.getItem('__SCRAT_VERSION__')) {
-                each(localStorage, function (key) {
-                    if (~key.indexOf(prefix)) {
-                        localStorage.removeItem(key);
-                    }
-                });
-                localStorage.setItem('__SCRAT_VERSION__', options.version);
+            if (options.hash !== localStorage.getItem('__SCRAT_HASH__')) {
+                scrat.clean();
+                localStorage.setItem('__SCRAT_HASH__', options.hash);
             }
-            if (options.cache) proto.prefix = prefix;
-        } catch (e) {}
+            options.cache = options.cache && !!options.hash;
+        } catch (e) {
+            options.cache = false;
+        }
 
         return options;
     };
@@ -82,7 +81,8 @@
      */
     proto.define = function (id, factory) {
         debug('scrat.define', '[' + id + ']');
-        var res = scrat.cache[id];
+        var options = scrat.options,
+            res = scrat.cache[id];
         if (res) {
             res.factory = factory;
         } else {
@@ -92,6 +92,47 @@
                 factory: factory
             };
         }
+        if (options.cache) {
+            localStorage.setItem(options.prefix + id, factory.toString());
+        }
+    };
+
+    /**
+     * Get a defined module
+     * @param {string} id
+     * @returns {object} module
+     */
+    proto.get = function (id) {
+        debug('scrat.get', '[' + id + ']');
+        var options = scrat.options,
+            res = scrat.cache[id],
+            factoryRaw;
+        if (res) {
+            return res;
+        } else if (options.cache) {
+            factoryRaw = localStorage.getItem(options.prefix + id);
+            if (factoryRaw) {
+                window['eval'].call(window, 'define("' + id + '",' + factoryRaw + ')');
+                scrat.cache[id].loaded = false;
+                return scrat.cache[id];
+            }
+        }
+        return null;
+    };
+
+    /**
+     * Clean module cache in localStorage
+     */
+    proto.clean = function () {
+        debug('scrat.clean');
+        try {
+            each(localStorage, function (_, key) {
+                if (~key.indexOf(scrat.options.prefix)) {
+                    localStorage.removeItem(key);
+                }
+            });
+            localStorage.removeItem('__SCRAT_HASH__');
+        } catch (e) {}
     };
 
     /**
@@ -218,26 +259,24 @@
         each(args, function (arg) {
             var id = scrat.alias(arg),
                 type = fileType(id),
-                res = scrat.cache[id];
+                res = scrat.get(id);
 
-            if (that.depended[id] || res && res.loaded) return;
-            if (res && !res.loaded && type !== 'unknown') {
+            if (!res) {
+                res = scrat.cache[id] = {
+                    id: id,
+                    loaded: false,
+                    onload: []
+                };
+            } else if (that.depended[id] || res.loaded) return;
+
+            that.depended[id] = 1;
+            that.push.apply(that, scrat.options.deps[id]);
+
+            if (type === 'css' || (type === 'js' && !res.factory && !res.exports)) {
+                (that.depends[type] || (that.depends[type] = [])).push(res);
                 ++that.length;
                 res.onload.push(onload);
-                return;
             }
-
-            res = scrat.cache[id] = {
-                id: id,
-                loaded: false,
-                onload: [onload]
-            };
-
-            that.push.apply(that, scrat.options.deps[id]);
-            that.depended[id] = 1;
-            if (!that.depends[type]) that.depends[type] = [];
-            that.depends[type].push(res);
-            if (type !== 'unknown') ++that.length;
         });
     };
 
@@ -317,7 +356,7 @@
      */
     function require(name) {
         var id = scrat.alias(name),
-            module = scrat.cache[id];
+            module = scrat.get(id);
 
         if (fileType(id) !== 'js') return;
         if (!module) throw new Error('failed to require "' + name + '"');
