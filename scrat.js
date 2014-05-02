@@ -195,8 +195,8 @@
         }
 
         node.onload = node.onreadystatechange = function () {
-            if (!node.readyState ||
-                /loaded|complete/.test(node.readyState)) {
+            if (node && (!node.readyState ||
+                /loaded|complete/.test(node.readyState))) {
                 clearTimeout(tid);
                 node.onload = node.onreadystatechange = null;
                 if (isScript && head && node.parentNode) head.removeChild(node);
