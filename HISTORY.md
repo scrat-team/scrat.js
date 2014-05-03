@@ -10,3 +10,9 @@
 * 新增 require.alias
 * 新增 require.load
 * 增加调试信息
+
+0.3.0 / 2014-05-03
+------------------
+
+* 增加 localStorage 对模块 JS 文件的缓存
+* 增加构建标识 hash，hash 发生变化时清空 localStorage 缓存

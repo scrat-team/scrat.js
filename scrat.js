@@ -10,6 +10,7 @@
     scrat.options = {
         prefix: '__SCRAT__',
         cache: true, // must use with `scrat release -m`
+        hash: null,
         timeout: 15, // seconds
         alias: {}, // key - name, value - id
         deps: {}, // key - id, value - name/id
