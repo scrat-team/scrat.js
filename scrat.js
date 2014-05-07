@@ -1,4 +1,4 @@
-(function (global, undefined) {
+(function (global) {
     'use strict';
 
     var slice = Array.prototype.slice,
@@ -9,8 +9,8 @@
     scrat.version = '0.3.0';
     scrat.options = {
         prefix: '__SCRAT__',
-        cache: true, // must use with `scrat release -m`
-        hash: null,
+        cache: false,
+        hash: '',
         timeout: 15, // seconds
         alias: {}, // key - name, value - id
         deps: {}, // key - id, value - name/id
@@ -99,21 +99,44 @@
     };
 
     /**
+     * Define a CSS module
+     * @param {string} id
+     * @param {string} css
+     */
+    proto.defineCSS = function (id, css, noParsing) {
+        debug('scrat.defineCSS', '[' + id + ']');
+        var options = scrat.options;
+        scrat.cache[id] = {
+            id: id,
+            loaded: true,
+            rawCSS: css
+        };
+        if (noParsing !== false) requireCSS(id);
+        if (options.cache) localStorage.setItem(options.prefix + id, css);
+    };
+
+    /**
      * Get a defined module
      * @param {string} id
      * @returns {object} module
      */
     proto.get = function (id) {
+        /* jshint evil:true */
         debug('scrat.get', '[' + id + ']');
         var options = scrat.options,
+            type = fileType(id),
             res = scrat.cache[id],
-            factoryRaw;
+            raw;
         if (res) {
             return res;
         } else if (options.cache) {
-            factoryRaw = localStorage.getItem(options.prefix + id);
-            if (factoryRaw) {
-                window['eval'].call(window, 'define("' + id + '",' + factoryRaw + ')');
+            raw = localStorage.getItem(options.prefix + id);
+            if (raw) {
+                if (type === 'js') {
+                    window['eval'].call(window, 'define("' + id + '",' + raw + ')');
+                } else if (type === 'css') {
+                    scrat.defineCSS(id, raw, false);
+                }
                 scrat.cache[id].loaded = false;
                 return scrat.cache[id];
             }
@@ -177,7 +200,7 @@
             isOldWebKit = +navigator.userAgent
                 .replace(/.*AppleWebKit\/(\d+)\..*/, '$1') < 536,
 
-            head = document.getElementsByTagName('head')[0],
+            head = document.head,
             node = document.createElement(isScript ? 'script' : 'link'),
             supportOnload = 'onload' in node,
             tid = setTimeout(onerror, (options.timeout || 15) * 1000),
@@ -273,10 +296,13 @@
             that.depended[id] = 1;
             that.push.apply(that, scrat.options.deps[id]);
 
-            if (type === 'css' || (type === 'js' && !res.factory && !res.exports)) {
+            if ((type === 'css' && !res.rawCSS && !res.parsed) ||
+                (type === 'js' && !res.factory && !res.exports)) {
                 (that.depends[type] || (that.depends[type] = [])).push(res);
                 ++that.length;
                 res.onload.push(onload);
+            } else if (res.rawCSS) {
+                requireCSS(id);
             }
         });
     };
@@ -333,6 +359,13 @@
 
         var options = scrat.options,
             url = options.combo && options.comboPattern || options.urlPattern;
+
+        if (options.cache && fileType(ids[0]) === 'css') {
+            each(ids, function (id, i) {
+                ids[i] = id + '.js';
+            });
+        }
+
         switch (type(url)) {
         case 'string':
             url = url.replace('%s', ids.join(','));
@@ -344,10 +377,7 @@
             url = ids.join(',');
         }
 
-        if (!options.cache) {
-            url = url + (~url.indexOf('?') ? '&' : '?') + (+new Date());
-        }
-        return url;
+        return url + (~url.indexOf('?') ? '&' : '?') + options.hash;
     };
 
     /**
@@ -375,6 +405,29 @@
 
     // Mix scrat's prototype to require
     each(proto, function (m, k) { require[k] = m; });
+
+    /**
+     * Parse CSS module
+     * @param {string} name
+     */
+    function requireCSS(name) {
+        var id = scrat.alias(name),
+            module = scrat.get(id);
+
+        if (fileType(id) !== 'css') return;
+        if (!module) throw new Error('failed to require "' + name + '"');
+
+        if (!module.parsed) {
+            if (type(module.rawCSS) !== 'string') {
+                throw new Error('failed to require "' + name + '"');
+            }
+            var styleEl = document.createElement('style');
+            document.head.appendChild(styleEl);
+            styleEl.appendChild(document.createTextNode(module.rawCSS));
+            delete module.rawCSS;
+            module.parsed = true;
+        }
+    }
 
     function type(obj) {
         var t;
@@ -446,4 +499,5 @@
 
     global.require = scrat;
     global.define = scrat.define;
+    global.defineCSS = scrat.defineCSS;
 })(this);
