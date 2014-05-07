@@ -16,3 +16,8 @@
 
 * 增加 localStorage 对模块 JS 文件的缓存
 * 增加构建标识 hash，hash 发生变化时清空 localStorage 缓存
+
+0.3.1 / 2014-05-07
+------------------
+
+* 增加 localStorage 对模块 CSS 文件的缓存，需与 scrat@0.1.12 配合使用
