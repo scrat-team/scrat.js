@@ -76,9 +76,9 @@
     };
 
     /**
-     * Define a module with a factory funciton or any types of value
+     * Define a JS module with a factory funciton
      * @param {string} id
-     * @param {*} factory
+     * @param {function} factory
      */
     proto.define = function (id, factory) {
         debug('scrat.define', '[' + id + ']');
@@ -469,8 +469,7 @@
         var ext = 'js',
             match = str.match(TYPE_RE);
         if (match && match.length) ext = RegExp.$1;
-        if (ext === 'json') ext = 'js';
-        else if (ext !== 'js' && ext !== 'css') ext = 'unknown';
+        if (ext !== 'js' && ext !== 'css') ext = 'unknown';
         return ext;
     }
 
