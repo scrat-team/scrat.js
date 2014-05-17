@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.0';
+    scrat.version = '0.3.2';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -16,7 +16,8 @@
         deps: {}, // key - id, value - name/id
         urlPattern: null, // '/path/to/resources/%s'
         comboPattern: null, // '/path/to/combo-service/%s' or function (ids) { return url; }
-        combo: false
+        combo: false,
+        maxUrlLength: 2000 // approximate value of combo url's max length (recommend 2000)
     };
     scrat.cache = {}; // key - id
 
@@ -307,6 +308,19 @@
         });
     };
 
+    function makeOnload(deps) {
+        deps = deps.slice();
+        return function () {
+            each(deps, function (res) {
+                res.loaded = true;
+                while (res.onload.length) {
+                    var onload = res.onload.shift();
+                    onload.call(res);
+                }
+            });
+        };
+    }
+
     rproto.run = function () {
         var that = this,
             options = scrat.options,
@@ -325,21 +339,25 @@
         debug('reactor.run', 'combo: ' + combo);
         if (combo) {
             each(['css', 'js'], function (type) {
-                var ids = [];
-                each(depends[type], function (res) {
-                    ids.push(res.id);
+                var urlLength = 0,
+                    ids = [],
+                    deps = [];
+
+                each(depends[type], function (res, i) {
+                    if (urlLength + res.id.length < options.maxUrlLength) {
+                        urlLength += res.id.length;
+                        ids.push(res.id);
+                        deps.push(res);
+                    } else {
+                        scrat.load(that.genUrl(ids), makeOnload(deps));
+                        urlLength = res.id.length;
+                        ids = [res.id];
+                        deps = [res];
+                    }
+                    if (i === depends[type].length - 1) {
+                        scrat.load(that.genUrl(ids), makeOnload(deps));
+                    }
                 });
-                if (ids.length) {
-                    scrat.load(that.genUrl(ids), function () {
-                        each(depends[type], function (res) {
-                            res.loaded = true;
-                            while (res.onload.length) {
-                                var onload = res.onload.shift();
-                                onload.call(res);
-                            }
-                        });
-                    });
-                }
             });
         } else {
             each((depends.css || []).concat(depends.js || []), function (res) {
