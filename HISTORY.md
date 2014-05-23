@@ -26,3 +26,9 @@
 ------------------
 
 * 增加对 combo-url 长度的限制，超长则对 combo 请求进行拆分
+
+0.3.3 / 2014-05-23
+------------------
+
+* 增加 scrat.traceback，保存在执行模块 factory 过程中未捕获的异常
+* 增加通过 GET 参数关闭 cache 或 combo 的能力，scrat=nocache,nocombo

@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.2';
+    scrat.version = '0.3.3';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -20,6 +20,7 @@
         maxUrlLength: 2000 // approximate value of combo url's max length (recommend 2000)
     };
     scrat.cache = {}; // key - id
+    scrat.traceback = null;
 
     /**
      * Mix obj to scrat.options
@@ -53,6 +54,20 @@
             options.cache = false;
         }
 
+        // detect scrat=nocombo,nocache in location.search
+        if (/\bscrat=([\w,]+)\b/.test(location.search)) {
+            each(RegExp.$1.split(','), function (o) {
+                switch (o) {
+                case 'nocache':
+                    scrat.clean();
+                    options.cache = false;
+                    break;
+                case 'nocombo':
+                    options.combo = false;
+                    break;
+                }
+            })
+        }
         return options;
     };
 
@@ -74,6 +89,7 @@
             debug('scrat.async', '[' + names.join(', ') + '] callback called');
         });
         reactor.run();
+        scrat._r = reactor;
     };
 
     /**
@@ -414,7 +430,12 @@
             if (type(module.factory) !== 'function') {
                 throw new Error('failed to require "' + name + '"');
             }
-            module.factory.call(scrat, require, module.exports = {}, module);
+            try {
+                module.factory.call(scrat, require, module.exports = {}, module);
+            } catch (e) {
+                e.id = id;
+                throw scrat.traceback = e;
+            }
             delete module.factory;
             debug('require', '[' + id + '] factory called');
         }
