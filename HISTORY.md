@@ -32,3 +32,8 @@
 
 * 增加 scrat.traceback，保存在执行模块 factory 过程中未捕获的异常
 * 增加通过 GET 参数关闭 cache 或 combo 的能力，scrat=nocache,nocombo
+
+0.3.4 / 2014-05-26
+------------------
+
+* 调整判断文件类型函数，原逻辑在 QQ 浏览器下无法正常拿到分组
