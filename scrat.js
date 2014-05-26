@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.3';
+    scrat.version = '0.3.4';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -66,7 +66,7 @@
                     options.combo = false;
                     break;
                 }
-            })
+            });
         }
         return options;
     };
@@ -425,7 +425,6 @@
 
         if (fileType(id) !== 'js') return;
         if (!module) throw new Error('failed to require "' + name + '"');
-
         if (!module.exports) {
             if (type(module.factory) !== 'function') {
                 throw new Error('failed to require "' + name + '"');
@@ -434,7 +433,7 @@
                 module.factory.call(scrat, require, module.exports = {}, module);
             } catch (e) {
                 e.id = id;
-                throw scrat.traceback = e;
+                throw (scrat.traceback = e);
             }
             delete module.factory;
             debug('require', '[' + id + '] factory called');
@@ -455,7 +454,6 @@
 
         if (fileType(id) !== 'css') return;
         if (!module) throw new Error('failed to require "' + name + '"');
-
         if (!module.parsed) {
             if (type(module.rawCSS) !== 'string') {
                 throw new Error('failed to require "' + name + '"');
@@ -503,11 +501,12 @@
         return new Dummy();
     }
 
-    var TYPE_RE = /(?:\.)(\w+)(?:[?&,]|$)/g;
+    var TYPE_RE = /\.(js|css)(?=[?&,]|$)/i;
     function fileType(str) {
-        var ext = 'js',
-            match = str.match(TYPE_RE);
-        if (match && match.length) ext = RegExp.$1;
+        var ext = 'js';
+        str.replace(TYPE_RE, function (m, $1) {
+            ext = $1;
+        });
         if (ext !== 'js' && ext !== 'css') ext = 'unknown';
         return ext;
     }
