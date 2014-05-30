@@ -89,7 +89,6 @@
             debug('scrat.async', '[' + names.join(', ') + '] callback called');
         });
         reactor.run();
-        scrat._r = reactor;
     };
 
     /**
@@ -119,8 +118,9 @@
      * Define a CSS module
      * @param {string} id
      * @param {string} css
+     * @param {boolean} [parsing=true]
      */
-    proto.defineCSS = function (id, css, noParsing) {
+    proto.defineCSS = function (id, css, parsing) {
         debug('scrat.defineCSS', '[' + id + ']');
         var options = scrat.options;
         scrat.cache[id] = {
@@ -128,7 +128,7 @@
             loaded: true,
             rawCSS: css
         };
-        if (noParsing !== false) requireCSS(id);
+        if (parsing !== false) requireCSS(id);
         if (options.cache) localStorage.setItem(options.prefix + id, css);
     };
 
