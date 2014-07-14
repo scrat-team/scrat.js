@@ -15,5 +15,6 @@
   "trailing": true,
   "eqnull": true,
   "browser": true,
+  "node": true,
   "devel": true
 }

@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.4';
+    scrat.version = '0.3.5';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -85,7 +85,7 @@
             each(names, function (id) {
                 args.push(require(id));
             });
-            onload && onload.apply(scrat, args);
+            if (onload) onload.apply(scrat, args);
             debug('scrat.async', '[' + names.join(', ') + '] callback called');
         });
         reactor.run();
@@ -253,7 +253,7 @@
         };
 
         debug('scrat.load', '[' + url + ']');
-        head.insertBefore(node, head.firstChild);
+        head.appendChild(node);
 
         // trigger onload immediately after nonscript node insertion
         if (isCss) {
@@ -417,7 +417,7 @@
     /**
      * Require another module in factory
      * @param {string} name
-     * @returns {*} exports
+     * @returns {*} module.exports
      */
     function require(name) {
         var id = scrat.alias(name),
@@ -537,4 +537,5 @@
     global.require = scrat;
     global.define = scrat.define;
     global.defineCSS = scrat.defineCSS;
+    if (module && module.exports) module.exports = scrat;
 })(this);
