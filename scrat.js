@@ -150,7 +150,7 @@
             raw = localStorage.getItem(options.prefix + id);
             if (raw) {
                 if (type === 'js') {
-                    window['eval'].call(window, 'define("' + id + '",' + raw + ')');
+                    global['eval'].call(global, 'define("' + id + '",' + raw + ')');
                 } else if (type === 'css') {
                     scrat.defineCSS(id, raw, false);
                 }
@@ -537,5 +537,5 @@
     global.require = scrat;
     global.define = scrat.define;
     global.defineCSS = scrat.defineCSS;
-    if (module && module.exports) module.exports = scrat;
+    if (global.module && global.module.exports) global.module.exports = scrat;
 })(this);
