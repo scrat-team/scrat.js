@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.5';
+    scrat.version = '0.3.6';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -92,7 +92,7 @@
     };
 
     /**
-     * Define a JS module with a factory funciton
+     * Define a JS module with a factory function
      * @param {string} id
      * @param {function} factory
      */
@@ -150,7 +150,12 @@
             raw = localStorage.getItem(options.prefix + id);
             if (raw) {
                 if (type === 'js') {
-                    global['eval'].call(global, 'define("' + id + '",' + raw + ')');
+                    // Don't use eval or new Function in UC (9.7.6 ~ 9.8.5)
+                    // global['eval'].call(global, 'define("' + id + '",' + raw + ')');
+                    // new Function('define("' + id + '",' + raw + ')')();
+                    var s = document.createElement('script');
+                    s.appendChild(document.createTextNode('define("' + id + '",' + raw + ')'));
+                    document.head.appendChild(s);
                 } else if (type === 'css') {
                     scrat.defineCSS(id, raw, false);
                 }
