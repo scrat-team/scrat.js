@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.6';
+    scrat.version = '0.3.7';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -214,7 +214,10 @@
      * @param {function|object} [onload|options]
      */
     proto.load = function (url, options) {
-        if (type(options) === 'function') options = {onload: options};
+        if (type(options) === 'function') {
+            options = {onload: options};
+            if (type(arguments[2]) === 'function') options.onerror = arguments[2];
+        }
 
         var t = options.type || fileType(url),
             isScript = t === 'js',
@@ -254,7 +257,9 @@
         node.onerror = function onerror() {
             clearTimeout(tid);
             clearInterval(intId);
-            throw new Error('Error loading url: ' + url);
+            var e = new Error('Error loading url: ' + url);
+            if (options.onerror) options.onerror.call(scrat, e);
+            else throw e;
         };
 
         debug('scrat.load', '[' + url + ']');
@@ -331,9 +336,10 @@
 
     function makeOnload(deps) {
         deps = deps.slice();
-        return function () {
+        return function (e) {
+            if (e) error(e);
             each(deps, function (res) {
-                res.loaded = true;
+                if (!e) res.loaded = true;
                 while (res.onload.length) {
                     var onload = res.onload.shift();
                     onload.call(res);
@@ -365,30 +371,28 @@
                     deps = [];
 
                 each(depends[type], function (res, i) {
+                    var onload;
                     if (urlLength + res.id.length < options.maxUrlLength) {
                         urlLength += res.id.length;
                         ids.push(res.id);
                         deps.push(res);
                     } else {
-                        scrat.load(that.genUrl(ids), makeOnload(deps));
+                        onload = makeOnload(deps);
+                        scrat.load(that.genUrl(ids), onload, onload);
                         urlLength = res.id.length;
                         ids = [res.id];
                         deps = [res];
                     }
                     if (i === depends[type].length - 1) {
-                        scrat.load(that.genUrl(ids), makeOnload(deps));
+                        onload = makeOnload(deps);
+                        scrat.load(that.genUrl(ids), onload, onload);
                     }
                 });
             });
         } else {
             each((depends.css || []).concat(depends.js || []), function (res) {
-                scrat.load(that.genUrl(res.id), function () {
-                    res.loaded = true;
-                    while (res.onload.length) {
-                        var onload = res.onload.shift();
-                        onload.call(res);
-                    }
-                });
+                var onload = makeOnload([res]);
+                scrat.load(that.genUrl(res.id), onload);
             });
         }
     };
@@ -429,7 +433,10 @@
             module = scrat.get(id);
 
         if (fileType(id) !== 'js') return;
-        if (!module) throw new Error('failed to require "' + name + '"');
+        if (!module) {
+            error(new Error('failed to require "' + name + '"'));
+            return null;
+        }
         if (!module.exports) {
             if (type(module.factory) !== 'function') {
                 throw new Error('failed to require "' + name + '"');
@@ -536,6 +543,12 @@
                 args.splice(1, 0, style);
             }
             console.log.apply(console, args);
+        }
+    }
+
+    function error() {
+        if (console && type(console.error) === 'function') {
+            console.error.apply(console, arguments);
         }
     }
 
