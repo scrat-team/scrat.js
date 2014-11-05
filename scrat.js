@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.7';
+    scrat.version = '0.3.8';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -315,10 +315,10 @@
             if (!res) {
                 res = scrat.cache[id] = {
                     id: id,
-                    loaded: false,
-                    onload: []
+                    loaded: false
                 };
             } else if (that.depended[id] || res.loaded) return;
+            if (!res.onload) res.onload = [];
 
             that.depended[id] = 1;
             that.push.apply(that, scrat.options.deps[id]);
@@ -340,7 +340,7 @@
             if (e) error(e);
             each(deps, function (res) {
                 if (!e) res.loaded = true;
-                while (res.onload.length) {
+                while (res.onload && res.onload.length) {
                     var onload = res.onload.shift();
                     onload.call(res);
                 }
