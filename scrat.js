@@ -421,7 +421,7 @@
             url = ids.join(',');
         }
 
-        // The omission of `v=` might cause problem in wechat's webview
+        // The omission of `_hash=` might cause problem in wechat's webview
         return url + (~url.indexOf('?') ? '&' : '?') + '_hash=' + options.hash;
     };
 
