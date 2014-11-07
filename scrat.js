@@ -254,10 +254,11 @@
             }
         };
 
-        node.onerror = function onerror() {
+        node.onerror = function onerror(e) {
             clearTimeout(tid);
             clearInterval(intId);
-            var e = new Error('Error loading url: ' + url);
+            e = (e || {}).error || new Error('load url timeout');
+            e.message = 'Error loading url: ' + url + '. ' + e.message;
             if (options.onerror) options.onerror.call(scrat, e);
             else throw e;
         };
