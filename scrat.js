@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.8';
+    scrat.version = '0.3.8-1';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -421,7 +421,8 @@
             url = ids.join(',');
         }
 
-        return url + (~url.indexOf('?') ? '&' : '?') + options.hash;
+        // The omission of `v=` might cause problem in wechat's webview
+        return url + (~url.indexOf('?') ? '&' : '?') + '_hash=' + options.hash;
     };
 
     /**
