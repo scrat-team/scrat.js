@@ -110,7 +110,11 @@
             };
         }
         if (options.cache) {
+        	try{
             localStorage.setItem(options.prefix + id, factory.toString());
+          }catch (e){
+          	options.cache = false;
+          }
         }
     };
 
@@ -129,7 +133,13 @@
             rawCSS: css
         };
         if (parsing !== false) requireCSS(id);
-        if (options.cache) localStorage.setItem(options.prefix + id, css);
+        if (options.cache) {
+        	try{
+        		localStorage.setItem(options.prefix + id, css);
+        	}catch (e){
+        		options.cache = false;
+        	}
+        }
     };
 
     /**
