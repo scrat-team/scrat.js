@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.8-1';
+    scrat.version = '0.3.8-2';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -110,11 +110,11 @@
             };
         }
         if (options.cache) {
-        	try{
-            localStorage.setItem(options.prefix + id, factory.toString());
-          }catch (e){
-          	options.cache = false;
-          }
+            try {
+                localStorage.setItem(options.prefix + id, factory.toString());
+            } catch (e) {
+                options.cache = false;
+            }
         }
     };
 
@@ -134,11 +134,11 @@
         };
         if (parsing !== false) requireCSS(id);
         if (options.cache) {
-        	try{
-        		localStorage.setItem(options.prefix + id, css);
-        	}catch (e){
-        		options.cache = false;
-        	}
+            try {
+                localStorage.setItem(options.prefix + id, css);
+            } catch (e) {
+                options.cache = false;
+            }
         }
     };
 
