@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.8-2';
+    scrat.version = '0.3.8-3';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -95,8 +95,9 @@
      * Define a JS module with a factory function
      * @param {string} id
      * @param {function} factory
+     * @param {boolean} nocache
      */
-    proto.define = function (id, factory) {
+    proto.define = function (id, factory, nocache) {
         debug('scrat.define', '[' + id + ']');
         var options = scrat.options,
             res = scrat.cache[id];
@@ -109,7 +110,7 @@
                 factory: factory
             };
         }
-        if (options.cache) {
+        if (options.cache && !nocache) {
             try {
                 localStorage.setItem(options.prefix + id, factory.toString());
             } catch (e) {

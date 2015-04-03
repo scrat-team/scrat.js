@@ -36,11 +36,12 @@ require.config({
 });
 ```
 
-### define(id, factory)
+### define(id, factory, nocache)
 说明：定义一个 JS 模块
 
 - @param {string} id - 模块 id
 - @param {function} factory - 模块的工厂函数
+- @param {boolean} nocache - 为ture时候强制不cache
 
 示例：
 ```javascript
