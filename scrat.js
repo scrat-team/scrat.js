@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.8-3';
+    scrat.version = '0.3.9';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -24,7 +24,7 @@
 
     /**
      * Mix obj to scrat.options
-     * @param {object} obj
+     * @param {Object} obj
      */
     proto.config = function (obj) {
         var options = scrat.options;
@@ -73,8 +73,8 @@
 
     /**
      * Require modules asynchronously with a callback
-     * @param {string|array} names
-     * @param {function} onload
+     * @param {string|string[]} names
+     * @param {Function} [onload]
      */
     proto.async = function (names, onload) {
         if (type(names) === 'string') names = [names];
@@ -94,10 +94,10 @@
     /**
      * Define a JS module with a factory function
      * @param {string} id
-     * @param {function} factory
-     * @param {boolean} nocache
+     * @param {Function} factory
+     * @param {boolean} [cache=true]
      */
-    proto.define = function (id, factory, nocache) {
+    proto.define = function (id, factory, cache) {
         debug('scrat.define', '[' + id + ']');
         var options = scrat.options,
             res = scrat.cache[id];
@@ -110,7 +110,7 @@
                 factory: factory
             };
         }
-        if (options.cache && !nocache) {
+        if (options.cache && cache !== false) {
             try {
                 localStorage.setItem(options.prefix + id, factory.toString());
             } catch (e) {
@@ -146,7 +146,7 @@
     /**
      * Get a defined module
      * @param {string} id
-     * @returns {object} module
+     * @returns {Object} module
      */
     proto.get = function (id) {
         /* jshint evil:true */
@@ -195,7 +195,7 @@
     /**
      * Get alias from specified name recursively
      * @param {string} name
-     * @param {string|function} [alias] - set alias
+     * @param {string|Function} [alias] - set alias
      * @returns {string} name
      */
     proto.alias = function (name, alias) {
@@ -222,7 +222,7 @@
     /**
      * Load any types of resources from specified url
      * @param {string} url
-     * @param {function|object} [onload|options]
+     * @param {Function|Object} [onload|options]
      */
     proto.load = function (url, options) {
         if (type(options) === 'function') {

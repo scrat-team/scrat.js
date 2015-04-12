@@ -8,8 +8,8 @@ Scrat.js 是与 [Scrat](https://github.com/scrat-team/scrat) 配套使用的前�
 ### require.async(modules, callback)
 说明：加载并运行一组 JS 模块
 
-- @param {string|array} modules - 要加载并运行的模块列表
-- @param {function} callback - 全部模块及其依赖加载成功后的回调函数
+- @param {string|string[]} modules - 要加载并运行的模块列表
+- @param {Function} [callback] - 全部模块及其依赖加载成功后的回调函数
 
 示例：
 ```javascript
@@ -23,8 +23,8 @@ require.async(['ajax', 'event'], function (ajax, event) {
 ### require.config(options)
 说明：设置并返回 Scrat.js 选项
 
-- @param {object} [options] - 配置选项
-- @returns {object} options
+- @param {Object} [options] - 配置选项
+- @returns {Object} options
 
 示例：
 ```javascript
@@ -36,12 +36,12 @@ require.config({
 });
 ```
 
-### define(id, factory, nocache)
+### define(id, factory [, cache=true])
 说明：定义一个 JS 模块
 
 - @param {string} id - 模块 id
-- @param {function} factory - 模块的工厂函数
-- @param {boolean} nocache - 为ture时候强制不cache
+- @param {Function} factory - 模块的工厂函数
+- @param {boolean} [cache=true] - 为 false 时候强制不缓存到 localStorage
 
 示例：
 ```javascript
