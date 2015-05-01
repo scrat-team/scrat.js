@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Testing</title>
+</head>
+
+<body>
+    <script src="./scrat.js"></script>
+    <script>
+    require.config({
+        "cache": true,
+        "urlPattern": "/c/%s",
+        "comboPattern": "/co??%s",
+        "alias": {
+            "config": "config",
+            "common/functions": "demo/1.1.1/common/functions/functions.js",
+            "pages/p-index": "demo/1.1.1/pages/p-index/p-index.js"
+        },
+        "version": "1.1.1",
+        "name": "nba",
+        "combo": true,
+        "hash": "xxxxxxx",
+        "deps": {
+            "pages/p-index": ["pages/p-index", "demo/1.1.1/pages/p-index/p-index.css", "common/functions"]
+        }
+    })
+    require.define('config', function (require, exprots, module) {
+        module.exports = {}
+    })
+    require.async('pages/p-index', function () {
+        
+    })
+    </script>
+</body>
+
+</html>
