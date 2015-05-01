@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.9';
+    scrat.version = '0.3.10';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -364,6 +364,7 @@
         var that = this,
             options = scrat.options,
             combo = options.combo,
+            cache = options.cache,
             depends = this.depends;
 
         if (this.length === 0) return this.callback();
@@ -376,31 +377,37 @@
         });
 
         debug('reactor.run', 'combo: ' + combo);
-        if (combo) {
-            each(['css', 'js'], function (type) {
-                var urlLength = 0,
-                    ids = [],
-                    deps = [];
 
-                each(depends[type], function (res, i) {
-                    var onload;
-                    if (urlLength + res.id.length < options.maxUrlLength) {
-                        urlLength += res.id.length;
-                        ids.push(res.id);
-                        deps.push(res);
-                    } else {
-                        onload = makeOnload(deps);
-                        scrat.load(that.genUrl(ids), onload, onload);
-                        urlLength = res.id.length;
-                        ids = [res.id];
-                        deps = [res];
-                    }
-                    if (i === depends[type].length - 1) {
-                        onload = makeOnload(deps);
-                        scrat.load(that.genUrl(ids), onload, onload);
-                    }
-                });
+        function resourceCombo (resdeps) {
+            var urlLength = 0,
+                ids = [],
+                deps = [];
+            each(resdeps, function (res, i) {
+                var onload;
+                if (urlLength + res.id.length < options.maxUrlLength) {
+                    urlLength += res.id.length;
+                    ids.push(res.id);
+                    deps.push(res);
+                } else {
+                    onload = makeOnload(deps);
+                    scrat.load(that.genUrl(ids), onload, onload);
+                    urlLength = res.id.length;
+                    ids = [res.id];
+                    deps = [res];
+                }
+                if (i === resdeps.length - 1) {
+                    onload = makeOnload(deps);
+                    scrat.load(that.genUrl(ids), onload, onload);
+                }
             });
+        }
+        if (combo) {
+            if (cache) {
+                resourceCombo(depends['css'].concat(depends['js']));
+            } else {
+                resourceCombo(depends['css']);
+                resourceCombo(depends['js']);
+            }
         } else {
             each((depends.css || []).concat(depends.js || []), function (res) {
                 var onload = makeOnload([res]);
@@ -415,11 +422,11 @@
         var options = scrat.options,
             url = options.combo && options.comboPattern || options.urlPattern;
 
-        if (options.cache && fileType(ids[0]) === 'css') {
-            each(ids, function (id, i) {
+        options.cache && each(ids, function (id, i) {
+            if (fileType(id) === 'css') {
                 ids[i] = id + '.js';
-            });
-        }
+            }
+        });
 
         switch (type(url)) {
         case 'string':
