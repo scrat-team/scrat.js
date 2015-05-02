@@ -17,7 +17,7 @@ var cssJSCode = 'require.defineCSS("%s", "html {}"'
 app.use(express.static(path.join(__dirname, '../')))
 
 app.get('/', function(req, res) {
-    res.send(fs.readFileSync('./runner.html', 'utf-8').replace('__FRAMEWORK_CONFIG__', JSON.stringify({
+    res.send(fs.readFileSync(path.join(__dirname, './runner.html'), 'utf-8').replace('__FRAMEWORK_CONFIG__', JSON.stringify({
         "cache": true,
         "urlPattern": "/c/%s",
         "comboPattern": "/co??%s",

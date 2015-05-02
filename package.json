@@ -2,7 +2,7 @@
   "name": "scrat.js",
   "main": "scrat.js",
   "scripts": {
-    "test": "phantomjs test/index.js",
+    "test": "node test/tasks.js",
     "start": "node server"
   },
   "repository": {
