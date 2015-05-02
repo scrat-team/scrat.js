@@ -120,7 +120,7 @@ R.prototype.delete = function(route, handler) {
 R.prototype.use = function(handler) {
     this.addRoute('ALL', /.+/, handler);
 };
-R.prototype.listen = function(port) {
+R.prototype.listen = function(port, done) {
     this.server.listen(port, _.bind(this.preRoute, this));
 };
 

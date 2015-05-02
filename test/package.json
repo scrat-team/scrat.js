@@ -1,0 +1,11 @@
+{
+	"name": "test",
+	"scripts": {
+		"start": "node server",
+        "mpt": "mocha-phantomjs http://localhost:3001"
+	},
+	"dependencies": {
+		"express": "*",
+		"colors": "*"
+	}
+}

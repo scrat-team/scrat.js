@@ -4,34 +4,50 @@
 <head>
     <meta charset="UTF-8">
     <title>Testing</title>
+    <script src="./node_modules/chai/chai.js"></script>
+    <script src="./node_modules/mocha/mocha.js"></script>
+    <link rel="stylesheet" href="./node_modules/mocha/mocha.css">
+    <script>
+        mocha.setup('bdd')
+        var assert = chai.assert;
+    </script>
 </head>
-
 <body>
+    <div id="mocha"></div>
     <script src="./scrat.js"></script>
     <script>
-    require.config({
-        "cache": true,
-        "urlPattern": "/c/%s",
-        "comboPattern": "/co??%s",
-        "alias": {
-            "config": "config",
-            "common/functions": "demo/1.1.1/common/functions/functions.js",
-            "pages/p-index": "demo/1.1.1/pages/p-index/p-index.js"
-        },
-        "version": "1.1.1",
-        "name": "nba",
-        "combo": true,
-        "hash": "xxxxxxx",
-        "deps": {
-            "pages/p-index": ["pages/p-index", "demo/1.1.1/pages/p-index/p-index.css", "common/functions"]
-        }
-    })
-    require.define('config', function (require, exprots, module) {
-        module.exports = {}
-    })
-    require.async('pages/p-index', function () {
-        
-    })
+        require.config({
+            "cache": true,
+            "urlPattern": "/c/%s",
+            "comboPattern": "/co??%s",
+            "alias": {
+                "config": "config",
+                "common/functions": "demo/1.1.1/common/functions/functions.js",
+                "pages/p-index": "demo/1.1.1/pages/p-index/p-index.js"
+            },
+            "version": "1.1.1",
+            "name": "nba",
+            "combo": true,
+            "hash": "xxxxxxx",
+            "deps": {
+                "pages/p-index": ["pages/p-index", "demo/1.1.1/pages/p-index/p-index.css", "common/functions"]
+            }
+        })
+        require.define('config', function (require, exprots, module) {
+            module.exports = {}
+        })
+        describe('scrat.js', function () {
+            it('Without error', function (done) {
+                require.async('pages/p-index', function (p) {
+                    assert(true)
+                    done()
+                })
+            })
+        })
+    </script>
+    <script>
+        if (window.mochaPhantomJS) { mochaPhantomJS.run(); }
+        else { mocha.run(); }
     </script>
 </body>
 

@@ -1,24 +1,23 @@
-var webPage = require('webpage');
-var page = webPage.create();
-var webserver = require('webserver');
-var server = webserver.create();
-var fs = require('fs');
-var express = require('./express')
-var port = 3001
-var url = 'http://localhost:' + port
-var app = new express();
-var process = require("child_process")
-var spawn = process.spawn
+'use strict';
+
+var express = require('express')
+var path = require('path')
+var fs = require('fs')
+var app = express()
+var colors = require('colors')
+
 
 
 var jsCode = 'define("%s", function(require, exports, module){ module.exports = {} })'
 var cssCode = 'html {}'
 var cssJSCode = 'require.defineCSS("%s", "html {}"'
-
-app.use(express.static('./'));
+    /**
+     *  static folder
+     **/
+app.use(express.static(path.join(__dirname, '../')))
 
 app.get('/', function(req, res) {
-    res.send(fs.read('./test/runner.html').replace('__FRAMEWORK_CONFIG__', JSON.stringify({
+    res.send(fs.readFileSync('./runner.html', 'utf-8').replace('__FRAMEWORK_CONFIG__', JSON.stringify({
         "cache": true,
         "urlPattern": "/c/%s",
         "comboPattern": "/co??%s",
@@ -36,6 +35,7 @@ app.get('/', function(req, res) {
         }
     })))
 })
+
 app.get('/co', function(req, res) {
     var i = req.url.indexOf('??')
     if (~i) {
@@ -53,23 +53,12 @@ app.get('/co', function(req, res) {
         res.send(500, 'fail')
     }
 })
-function exit() {
-    app.server.close()
-    phantom.exit()
-}
 
-app.listen(port)
+/**
+ *  server and port
+ **/
+var port = process.env.PORT || 3001
 
-var childProcess = require("child_process")
-childProcess.execFile("mocha-phantomjs", ['-f ./test/r.json', url + '/'], null, function (err, stdout, stderr) {
-    console.log("execFileSTDOUT:", JSON.stringify(stdout))
-    console.log("execFileSTDERR:", JSON.stringify(stderr))
+app.listen(port, function() {
+    console.log('Server is listen on port', String(port).blue)
 })
-
-page.open(url + '/', function(status) {
-    // exit()
-})
-page.onConsoleMessage = function(msg, lineNum, sourceId) {
-    console.log('Web:', msg)
-}
-
