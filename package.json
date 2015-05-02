@@ -17,5 +17,9 @@
   "author": "scrat-team",
   "dependencies": {
     "express": "^4.12.3"
+  },
+  "devDependencies": {
+    "mocha-phantomjs": "^3.5.3",
+    "phantomjs": "^1.9.16"
   }
 }

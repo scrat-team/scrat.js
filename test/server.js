@@ -5,7 +5,6 @@ var path = require('path')
 var fs = require('fs')
 var app = express()
 
-
 var jsCode = 'define("%s", function(require, exports, module){ module.exports = {} })'
 var cssCode = 'html {}'
 var cssJSCode = 'require.defineCSS("%s", "html {}"'
