@@ -14,5 +14,8 @@
     "module",
     "loader"
   ],
-  "author": "scrat-team"
+  "author": "scrat-team",
+  "dependencies": {
+    "express": "^4.12.3"
+  }
 }

@@ -4,8 +4,6 @@ var express = require('express')
 var path = require('path')
 var fs = require('fs')
 var app = express()
-var colors = require('colors')
-
 
 
 var jsCode = 'define("%s", function(require, exports, module){ module.exports = {} })'
@@ -60,5 +58,5 @@ app.get('/co', function(req, res) {
 var port = process.env.PORT || 3001
 
 app.listen(port, function() {
-    console.log('Server is listen on port', String(port).blue)
+    console.log('Server is listen on port', port)
 })
