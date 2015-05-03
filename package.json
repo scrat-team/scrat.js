@@ -3,6 +3,7 @@
   "main": "scrat.js",
   "scripts": {
     "test": "node test/tasks.js",
+    "runner": "mocha-phantomjs http://localhost:3001",
     "start": "node server"
   },
   "repository": {
@@ -15,10 +16,10 @@
     "loader"
   ],
   "author": "scrat-team",
-  "dependencies": {
-    "express": "^4.12.3"
-  },
   "devDependencies": {
+    "chai": "^2.3.0",
+    "express": "^4.12.3",
+    "mocha": "^2.2.4",
     "mocha-phantomjs": "^3.5.3",
     "phantomjs": "^1.9.16"
   }
