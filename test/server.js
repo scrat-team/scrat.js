@@ -5,7 +5,7 @@ var path = require('path')
 var fs = require('fs')
 var app = express()
 
-var jsCode = 'define("%s", function(require, exports, module){ module.exports = {} })'
+var jsCode = 'define("%s", function(require, exports, module){ module.exports = %s })'
 var cssCode = 'html {}'
 var cssJSCode = 'require.defineCSS("%s", "html {}"'
     /**
@@ -40,9 +40,13 @@ app.get('/co', function(req, res) {
         var hash = combo[1]
         var files = combo[0].split(',')
         var comboFiles = files.map(function(f) {
-            if (/\.css\.js/.test(f)) return cssCode.replace('$s', f.replace(/\.js$/, ''))
-            else if (/\.js$/.test(f)) return jsCode.replace('%s', f)
-            else if (/\.css$/.test(f)) return cssCode
+            if (/\.css\.js/.test(f)) {
+                return cssCode.replace('%s', f.replace(/\.js$/, ''))
+            } else if (/\.js$/.test(f)) {
+                return jsCode.replace('%s', f)
+                             .replace('%s', '{name: "p-index"}')
+            } else if (/\.css$/.test(f)) return cssCode
+            
             return ''
         })
         res.send(comboFiles.join('\n'))
