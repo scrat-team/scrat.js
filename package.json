@@ -2,9 +2,7 @@
   "name": "scrat.js",
   "main": "scrat.js",
   "scripts": {
-    "test": "node test/tasks.js",
-    "runner": "mocha-phantomjs http://localhost:3001",
-    "start": "node server"
+    "test": "node test/tasks.js"
   },
   "repository": {
     "type": "git",
