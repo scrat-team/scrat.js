@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Testing</title>
+    <script src="./node_modules/chai/chai.js"></script>
+    <script src="./node_modules/mocha/mocha.js"></script>
+    <link rel="stylesheet" href="./node_modules/mocha/mocha.css">
+    <script>
+        mocha.setup('bdd')
+        var expect = chai.expect;
+    </script>
+</head>
+<body>
+    <div id="mocha"></div>
+    <script src="./scrat.js"></script>
+    <script src="./test/spec.js"></script>
+    <script>
+        if (window.mochaPhantomJS) { mochaPhantomJS.run(); }
+        else { mocha.run(); }
+    </script>
+</body>
+
+</html>

@@ -229,7 +229,6 @@
             options = {onload: options};
             if (type(arguments[2]) === 'function') options.onerror = arguments[2];
         }
-
         var t = options.type || fileType(url),
             isScript = t === 'js',
             isCss = t === 'css',
@@ -253,7 +252,6 @@
             }
             node.href = url;
         }
-
         node.onload = node.onreadystatechange = function () {
             if (node && (!node.readyState ||
                 /loaded|complete/.test(node.readyState))) {
@@ -264,8 +262,7 @@
                 node = null;
             }
         };
-
-        node.onerror = function onerror(e) {
+        function onerror(e) {
             clearTimeout(tid);
             clearInterval(intId);
             e = (e || {}).error || new Error('load url timeout');
@@ -273,6 +270,7 @@
             if (options.onerror) options.onerror.call(scrat, e);
             else throw e;
         };
+        node.onerror = onerror
 
         debug('scrat.load', '[' + url + ']');
         head.appendChild(node);
@@ -403,10 +401,10 @@
         }
         if (combo) {
             if (cache) {
-                resourceCombo(depends['css'].concat(depends['js']));
+                resourceCombo((depends.css || []).concat(depends.js || []));
             } else {
-                resourceCombo(depends['css']);
-                resourceCombo(depends['js']);
+                resourceCombo(depends.css || []);
+                resourceCombo(depends.js || []);
             }
         } else {
             each((depends.css || []).concat(depends.js || []), function (res) {
@@ -575,5 +573,5 @@
     global.require = scrat;
     global.define = scrat.define;
     global.defineCSS = scrat.defineCSS;
-    if (global.module && global.module.exports) global.module.exports = scrat;
+    if (typeof module === 'object' && typeof module.exports === 'object') module.exports = scrat;
 })(this);

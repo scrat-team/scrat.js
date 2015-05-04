@@ -1,0 +1,25 @@
+{
+  "name": "scrat.js",
+  "main": "scrat.js",
+  "scripts": {
+    "test": "node test/tasks.js",
+    "runner": "mocha-phantomjs http://localhost:3001"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scrat-team/scrat.js.git"
+  },
+  "keywords": [
+    "scrat",
+    "module",
+    "loader"
+  ],
+  "author": "scrat-team",
+  "devDependencies": {
+    "chai": "^2.3.0",
+    "express": "^4.12.3",
+    "mocha": "^2.2.4",
+    "mocha-phantomjs": "^3.5.3",
+    "phantomjs": "^1.9.16"
+  }
+}
