@@ -256,6 +256,7 @@
             if (node && (!node.readyState ||
                 /loaded|complete/.test(node.readyState))) {
                 clearTimeout(tid);
+                clearInterval(intId);
                 node.onload = node.onreadystatechange = null;
                 if (isScript && head && node.parentNode) head.removeChild(node);
                 if (options.onload) options.onload.call(scrat);
