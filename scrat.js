@@ -456,10 +456,7 @@
             error(new Error('failed to require "' + name + '"'));
             return null;
         }
-        if (!module.exports) {
-            if (type(module.factory) !== 'function') {
-                throw new Error('failed to require "' + name + '"');
-            }
+        if(type(module.factory) === 'function'){
             try {
                 module.factory.call(scrat, require, module.exports = {}, module);
             } catch (e) {
