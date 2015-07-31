@@ -6,7 +6,7 @@
         proto = {},
         scrat = create(proto);
 
-    scrat.version = '0.3.10';
+    scrat.version = '0.3.11';
     scrat.options = {
         prefix: '__SCRAT__',
         cache: false,
@@ -456,14 +456,15 @@
             error(new Error('failed to require "' + name + '"'));
             return null;
         }
-        if(type(module.factory) === 'function'){
+        if (type(module.factory) === 'function') {
+            var factory = module.factory;
+            delete module.factory;
             try {
-                module.factory.call(scrat, require, module.exports = {}, module);
+                factory.call(scrat, require, module.exports = {}, module);
             } catch (e) {
                 e.id = id;
                 throw (scrat.traceback = e);
             }
-            delete module.factory;
             debug('require', '[' + id + '] factory called');
         }
         return module.exports;
