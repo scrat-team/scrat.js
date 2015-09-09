@@ -243,7 +243,7 @@
 
         if (isScript) {
             node.type = 'text/javascript';
-            node.async = 'async';
+            node.async = false;
             node.src = url;
         } else {
             if (isCss) {
