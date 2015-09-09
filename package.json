@@ -20,6 +20,6 @@
     "express": "^4.12.3",
     "mocha": "^2.2.4",
     "mocha-phantomjs": "3.6.0",
-    "phantomjs": "1.9.8"
+    "phantomjs": "1.9.7-15"
   }
 }
