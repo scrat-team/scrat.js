@@ -19,7 +19,7 @@
     "chai": "^2.3.0",
     "express": "^4.12.3",
     "mocha": "^2.2.4",
-    "mocha-phantomjs": "^3.5.3",
-    "phantomjs": "^1.9.16"
+    "mocha-phantomjs": "3.6.0",
+    "phantomjs": "1.9.8"
   }
 }
