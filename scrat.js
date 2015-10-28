@@ -229,6 +229,14 @@
             options = {onload: options};
             if (type(arguments[2]) === 'function') options.onerror = arguments[2];
         }
+        function onerror(e) {
+            clearTimeout(tid);
+            clearInterval(intId);
+            e = (e || {}).error || new Error('load url timeout');
+            e.message = 'Error loading url: ' + url + '. ' + e.message;
+            if (options.onerror) options.onerror.call(scrat, e);
+            else throw e;
+        };
         var t = options.type || fileType(url),
             isScript = t === 'js',
             isCss = t === 'css',
@@ -262,14 +270,6 @@
                 if (options.onload) options.onload.call(scrat);
                 node = null;
             }
-        };
-        function onerror(e) {
-            clearTimeout(tid);
-            clearInterval(intId);
-            e = (e || {}).error || new Error('load url timeout');
-            e.message = 'Error loading url: ' + url + '. ' + e.message;
-            if (options.onerror) options.onerror.call(scrat, e);
-            else throw e;
         };
         node.onerror = onerror
 
