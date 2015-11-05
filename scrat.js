@@ -159,7 +159,7 @@
             return res;
         } else if (options.cache) {
             raw = localStorage.getItem(options.prefix + id);
-            if (raw) {
+            if (raw !== null) {
                 if (type === 'js') {
                     // Don't use eval or new Function in UC (9.7.6 ~ 9.8.5)
                     // global['eval'].call(global, 'define("' + id + '",' + raw + ')');
